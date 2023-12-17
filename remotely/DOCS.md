@@ -16,7 +16,7 @@ Because HAOS docker:
 
 ## How to use
 
-please read documentation on [https://github.com/immense/Remotely] page
+please read documentation on [Remotely](https://github.com/immense/Remotely) page
 
 ## Home Assistant specific info
 Add-on presents itself in config folder. This is new feature in HAOS. In this folder, remotely-config, you can find database file and configuration file.
