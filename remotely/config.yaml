@@ -1,6 +1,6 @@
 name: "Remotely"
 description: "Remotely server"
-url: https://github.com/lordrak007/haas-addon-repo/remotely-addon
+url: https://github.com/lordrak007/haas-addon-repo/remotely
 webui: "[PROTO:ssl]://[HOST]:[PORT:5000]"
 panel_icon: mdi:remotedesktop
 version: "0.1.8"
