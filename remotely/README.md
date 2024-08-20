@@ -1,6 +1,6 @@
 # Home Assistant Add-on: Remotely
 
-_Remotely addon_
+_Remotely addon - PRE RELEASE_
 Custom docker build based on amazing [Remotely](https://github.com/immense/Remotely)
 
 A remote control and remote scripting solution, built with .NET, Blazor, and SignalR Core.

@@ -3,7 +3,7 @@ description: "Remotely server"
 url: https://github.com/lordrak007/haas-addon-repo/remotely
 webui: "[PROTO:ssl]://[HOST]:[PORT:5000]"
 panel_icon: mdi:remotedesktop
-version: "0.1.8"
+version: "V1.15-R2024.08.07.0819"
 slug: "remotely"
 init: false
 arch:
@@ -16,3 +16,21 @@ host_network: true
 map:
   - addon_config:rw
 
+environment:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_HTTP_PORTS: "5000"
+  # Other ASP.NET Core configurations can be overridden here, such as Logging.
+  # See https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/?view=aspnetcore-8.0
+  # Values for DbProvider are SQLite, SQLServer, and PostgreSQL.
+  Remotely_ApplicationOptions__DbProvider: "SQLite"
+  # The Docker gateway will be used in Forwarded Headers, which is necessary to
+  # to correctly determine request hostname and scheme within the app.  If you change
+  # the network config, you must update this value as well.
+  Remotely_ApplicationOptions__DockerGateway: "172.30.32.1"
+  # This path shouldn"t be changed.  It points to the Docker volume.
+  #Remotely_ConnectionStrings__SQLite: "Data Source=/app/AppData/Remotely.db"
+  Remotely_ConnectionStrings__SQLite: "Data Source=/config/Remotely.db"
+  # If using SQL Server, change the connection string to point to your SQL Server instance.
+  Remotely_ConnectionStrings__SQLServer: "Server=(localdb)\\mssqllocaldb;Database=Remotely-Server-53bc9b9d-9d6a-45d4-8429-2a2761773502;Trusted_Connection=True;MultipleActiveResultSets=true"
+  # If using PostgreSQL, change the connection string to point to your PostgreSQL instance.
+  Remotely_ConnectionStrings__PostgreSQL: "Server=Host=localhost;Database=Remotely;Username=postgres;"
