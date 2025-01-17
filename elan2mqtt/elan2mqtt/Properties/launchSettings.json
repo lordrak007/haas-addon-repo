@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "elan2mqtt": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
