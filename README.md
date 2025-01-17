@@ -17,6 +17,9 @@ Tento repozitář obsahuje tyto doplňky
 
 ![Supports amd64 Architecture][amd64-shield]
 
+### [eLan2MQTT.NET add-on](./elan2mqtt)
+
+![Supports amd64 Architecture][amd64-shield]
 
 
 <!--
