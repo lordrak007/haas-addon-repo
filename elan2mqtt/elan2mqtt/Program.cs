@@ -1,27 +1,34 @@
-﻿namespace elan2mqtt
+﻿using elan2mqtt.Model.eLan;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+namespace elan2mqtt
 {
 
     public class Program
     {
+
         static Main m;
         static void Main(string[] args)
         {
+            var log = ApplicationLogging.CreateLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.Name);
+
             m = new Main();
             bool stopSignal = false;
             AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
             {
-                Console.WriteLine("Unhandled exception: " + eventArgs.ExceptionObject);
+                log.LogError("Unhandled exception: " + eventArgs.ExceptionObject);
             };
             AppDomain.CurrentDomain.ProcessExit += (sender, eventArgs) =>
             {
-                Console.WriteLine("Received processExit request");
+                log.LogInformation("Received processExit request");
                 stopSignal = true;
             };
             
             Console.CancelKeyPress += (_, ea) =>
             {
                 stopSignal = ea.Cancel = true;
-                Console.WriteLine("Received SIGINT (Ctrl+C)");
+                log.LogInformation("Received SIGINT (Ctrl+C)");
             };
             // waiting to get stop signal
             while (!stopSignal)

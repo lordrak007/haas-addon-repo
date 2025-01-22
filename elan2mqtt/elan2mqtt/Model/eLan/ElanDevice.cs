@@ -1,4 +1,6 @@
-﻿using MQTTnet.Extensions;
+﻿using Microsoft.Extensions.Logging;
+using MQTTnet.Extensions;
+using System.Globalization;
 
 namespace elan2mqtt.Model.eLan
 {
@@ -9,6 +11,8 @@ namespace elan2mqtt.Model.eLan
     }
     public class ELanDevice : ElkoEpDevFromJson
     {
+        ILogger log = ApplicationLogging.CreateLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.Name);
+
         public ELanDevice(string id, string deviceURL)
         {
             Id = id;
@@ -47,7 +51,7 @@ namespace elan2mqtt.Model.eLan
                 OpenWindowSensitivity = copy.ActionsInfo.OpenWindowSensitivity,
                 OpenWindowOffTime = copy.ActionsInfo.OpenWindowOffTime
             };
-            PrimaryActions = new List<string>(copy.PrimaryActions);
+            PrimaryActions = new List<object>(copy.PrimaryActions);
             SecondaryActions = new List<object>(copy.SecondaryActions);
             Settings = new Dictionary<string, int>(copy.Settings);
         }
@@ -66,16 +70,23 @@ namespace elan2mqtt.Model.eLan
 
         public async Task UpdateDevice(string json)
         {
-            var o = ElDevExtensions.FromJson<ElkoEpDevFromJson>(json);
-            if (o == null)
+            try
             {
-                Console.WriteLine($"eLan Device {Id} can not be updated. Given json probably is not eLan device: {json.Linearize()}");
-                return;
-            }
-            this.CopyFromElkoEpDevFromJson(o);
-            Console.WriteLine($"eLan Updating Device: {Id} => {DeviceURL}, dev label {DeviceInfo?.Label}, dev address {DeviceInfo?.Address}, type {DeviceInfo?.Type}");
+                var o = ElDevExtensions.FromJson<ElkoEpDevFromJson>(json, ElDevJsonContext.Default);
+                if (o == null)
+                {
+                    log.LogWarning($"eLan Device {Id} can not be updated. Given json probably is not eLan device: {json.Linearize()}");
+                    return;
+                }
+                this.CopyFromElkoEpDevFromJson(o);
+                log.LogInformation($"eLan Updating Device: {Id} => {DeviceURL}, dev label {DeviceInfo?.Label}, dev address {DeviceInfo?.Address}, type {DeviceInfo?.Type}");
 
-            setDeviceType(this);
+                setDeviceType(this);
+            }
+            catch (Exception ex)
+            {
+                log.LogError($"eLan Device {Id} can not be updated. Exception: {ex.Message}");
+            }
         }
 
         void setDeviceType(ELanDevice dev)
@@ -101,17 +112,37 @@ namespace elan2mqtt.Model.eLan
                 DeviceType = ElanDeviceTypeEnum.Switch;
                 DeviceSubType = ElanDeviceSubTypeEnum.OnOff;
             }
-            else if (dev.DeviceInfo.Type.Contains("heating") || dev.DeviceInfo.ProductType == "RFSA-61B")
+            else if (dev.DeviceInfo.Type.Contains("heating") || dev.DeviceInfo.ProductType == "RFSTI-11G")
             {
                 DeviceType = ElanDeviceTypeEnum.Heating;
             }
-            else if (dev.DeviceInfo.Type.Contains("thermometer") || dev.DeviceInfo.ProductType == "RFSA-61T")
+            else if (dev.DeviceInfo.Type.Contains("thermometer") ||
+                dev.DeviceInfo.ProductType.Contains("RFWD-") || 
+                dev.DeviceInfo.ProductType.Contains("RFSD-") || 
+                dev.DeviceInfo.ProductType.Contains("RFMD-") || 
+                dev.DeviceInfo.ProductType.Contains("RFSF-"))
             {
                 DeviceType = ElanDeviceTypeEnum.Thermometer;
             }
             else if (dev.DeviceInfo.Type.Contains("detector") || dev.DeviceInfo.ProductType == "RFSA-61D")
             {
                 DeviceType = ElanDeviceTypeEnum.Detector;
+                if (dev.DeviceInfo.ProductType.Contains("RFWD-") || (dev.DeviceInfo.Type.Contains("window")))
+                {
+                    DeviceSubType = ElanDeviceSubTypeEnum.Window;
+                }
+                if (dev.DeviceInfo.ProductType.Contains("RFSD-") || (dev.DeviceInfo.Type.Contains("smoke")))
+                {
+                    DeviceSubType = ElanDeviceSubTypeEnum.Smoke;
+                }
+                if (dev.DeviceInfo.ProductType.Contains("RFMD-") || (dev.DeviceInfo.Type.Contains("motion")))
+                {
+                    DeviceSubType = ElanDeviceSubTypeEnum.Smoke;
+                }
+                if (dev.DeviceInfo.ProductType.Contains("RFSF-") || (dev.DeviceInfo.Type.Contains("flood")))
+                {
+                    DeviceSubType = ElanDeviceSubTypeEnum.Flood;
+                }
             }
             else if (dev.PrimaryActions.Contains("on"))
             {
@@ -133,7 +164,8 @@ namespace elan2mqtt.Model.eLan
         Light = 10,
         Switch = 20,
         Heating = 30,
-        Thermometer = 35,
+        Thermometer = 34,
+        Thermostats = 37,
         Detector = 40,
     }
     public enum ElanDeviceSubTypeEnum
@@ -142,5 +174,9 @@ namespace elan2mqtt.Model.eLan
         OnOff = 10,
         Dimmer = 13,
         Color = 15,
+        Window = 25,
+        Smoke = 27,
+        Motion = 29,
+        Flood = 31
     }
 }

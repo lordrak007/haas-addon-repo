@@ -1,14 +1,8 @@
 ﻿using System.Text.Json.Serialization;
+using static System.Collections.Specialized.BitVector32;
 
 namespace elan2mqtt.Model.eLan
 {
-
-
-
-	/// <summary>
-	/// Classes generated from devices jsons from Elan-003 devices
-	/// </summary>
-
     public class ElkoEpDevFromJson
     {
         [JsonPropertyName("id")]
@@ -21,13 +15,53 @@ namespace elan2mqtt.Model.eLan
         public ActionsInfoFromJson ActionsInfo { get; set; }
 
         [JsonPropertyName("primary actions")]
-        public List<string> PrimaryActions { get; set; }
+        public List<object> PrimaryActions { get; set; }
 
         [JsonPropertyName("secondary actions")]
         public List<object> SecondaryActions { get; set; }
 
         [JsonPropertyName("settings")]
         public Dictionary<string, int> Settings { get; set; }
+
+        // Bezparametrický konstruktor
+        public ElkoEpDevFromJson() { }
+
+        // Konstruktor, který přijímá instanci třídy ElkoEpDevFromJson a zkopíruje všechny jeho proměnné do nové instance
+        public ElkoEpDevFromJson(ElkoEpDevFromJson toCopy)
+        {
+            Id = toCopy.Id;
+            DeviceInfo = new DeviceInfoFromJson
+            {
+                Address = toCopy.DeviceInfo.Address,
+                Label = toCopy.DeviceInfo.Label,
+                Type = toCopy.DeviceInfo.Type,
+                ProductType = toCopy.DeviceInfo.ProductType
+            };
+            ActionsInfo = new ActionsInfoFromJson
+            {
+                On = toCopy.ActionsInfo.On,
+                DelayedOff = toCopy.ActionsInfo.DelayedOff,
+                DelayedOn = toCopy.ActionsInfo.DelayedOn,
+                DelayedOffSetTime = toCopy.ActionsInfo.DelayedOffSetTime,
+                DelayedOnSetTime = toCopy.ActionsInfo.DelayedOnSetTime,
+                Automat = toCopy.ActionsInfo.Automat,
+                Red = toCopy.ActionsInfo.Red,
+                Green = toCopy.ActionsInfo.Green,
+                Blue = toCopy.ActionsInfo.Blue,
+                Brightness = toCopy.ActionsInfo.Brightness,
+                Demo = toCopy.ActionsInfo.Demo,
+                Increase = toCopy.ActionsInfo.Increase,
+                Decrease = toCopy.ActionsInfo.Decrease,
+                IncreaseSetTime = toCopy.ActionsInfo.IncreaseSetTime,
+                DecreaseSetTime = toCopy.ActionsInfo.DecreaseSetTime,
+                RequestedTemperature = toCopy.ActionsInfo.RequestedTemperature,
+                OpenWindowSensitivity = toCopy.ActionsInfo.OpenWindowSensitivity,
+                OpenWindowOffTime = toCopy.ActionsInfo.OpenWindowOffTime
+            };
+            PrimaryActions = new List<object>(toCopy.PrimaryActions);
+            SecondaryActions = new List<object>(toCopy.SecondaryActions);
+            Settings = new Dictionary<string, int>(toCopy.Settings);
+        }
 
     }
 
@@ -44,6 +78,9 @@ namespace elan2mqtt.Model.eLan
 
         [JsonPropertyName("product type")]
         public string ProductType { get; set; }
+
+        // Bezparametrický konstruktor
+        public DeviceInfoFromJson() { }
     }
 
     public class ActionsInfoFromJson
@@ -101,6 +138,9 @@ namespace elan2mqtt.Model.eLan
 
         [JsonPropertyName("open window off time")]
         public ActionTypeFromJson OpenWindowOffTime { get; set; }
+
+        // Bezparametrický konstruktor
+        public ActionsInfoFromJson() { }
     }
 
     public class ActionTypeFromJson
@@ -116,7 +156,8 @@ namespace elan2mqtt.Model.eLan
 
         [JsonPropertyName("step")]
         public double? Step { get; set; }
-    }
 
- 
+        // Bezparametrický konstruktor
+        public ActionTypeFromJson() { }
+    }
 }

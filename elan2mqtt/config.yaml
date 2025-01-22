@@ -1,7 +1,7 @@
 name: "eLAN MQTT NET"
 description: "MQTT gateway for eLan using .Net"
-url: https://github.com/lordrak007/haas-addon-repo/elan2mqtt
-version: "V1.0.0"
+url: https://github.com/lordrak007/haas-addon-repo
+version: "V1.0.1"
 slug: "elan2mqttnet"
 init: false
 arch:
@@ -20,9 +20,6 @@ options:
   "eLan URL": "http://ip.address"
   "eLan username": "user"
   "eLan password": "password"
-#  "MQTT server URL": "mqtt://homeassistant"
-#  "MQTT username": "user"
-#  "MQTT password": "password"
   log_level: "info"
   autodiscovery_enabled: "true"
 
@@ -30,18 +27,5 @@ schema:
   "eLan URL": "str"
   "eLan username": "str"
   "eLan password": "str"
-#  "MQTT server URL": "str"
-#  "MQTT username": "str"
-#  "MQTT password": "str"
   log_level: "match(^(trace|debug|info|notice|warning|error|fatal)$)"
   autodiscovery_enabled: "bool?"
-
-
-#environment:
-#  elan2mqtt_elanurl: 127.0.0.1
-#  elan2mqtt_elanusername: user
-#  elan2mqtt_elanpassword: pass
-#  elan2mqtt_mqtturl: neco
-#  elan2mqtt_mqttusername: user
-#  elan2mqtt_mqttpassword: pass
-#  elan2mqtt_loglevel: info

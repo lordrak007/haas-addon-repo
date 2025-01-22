@@ -1,5 +1,6 @@
 ﻿using elan2mqtt.Model.eLan;
 using elan2mqtt.Model.MQTT;
+using Microsoft.Extensions.Logging;
 using MQTTnet.Extensions;
 using RestSharp;
 using System.Net;
@@ -13,6 +14,8 @@ namespace elan2mqtt.Helpers
 {
     internal class eLanConnector : IDisposable
     {
+        ILogger log = ApplicationLogging.CreateLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.Name);
+
         //     keep_alive_interval = 1 * 60  # interval between mandatory messages to keep connections open (and to renew session) in s (eLan session expires in 0.5 h)
         CookieContainer sharedCookie = new CookieContainer();
         string _pass = string.Empty;
@@ -40,7 +43,7 @@ namespace elan2mqtt.Helpers
             _MQTTDiscoveryTimer.Start();
             _MQTTUpdateTimer.Start();
 
-            Console.WriteLine("eLan connector initialized");
+            log.LogDebug("eLan connector initialized");
         }
 
         async Task generateMQTTDiscoveryMessages()
@@ -51,10 +54,13 @@ namespace elan2mqtt.Helpers
             {
                 _eLanDevices.ForEach(d =>
                 {
-                    var json = dh.CreateDiscoveryObject(d).Result;
-                    if (json != null)
+                    var jsonList = dh.CreateDiscoveryObject(d).Result;
+                    if (jsonList != null && jsonList.Count > 0)
                     {
-                        ElanDeviceDiscoveryEventReceived?.Invoke(this, new ElanDeviceDiscoveryEventReceivedEventArgs(DiscoveryHelper.GetDiscoveryTopic(d), json.ToJsonBxtes()));
+                        foreach (var config in jsonList)
+                        {
+                            ElanDeviceDiscoveryEventReceived?.Invoke(this, new ElanDeviceDiscoveryEventReceivedEventArgs(config.Topic, config.MqttConfig.ToJsonBxtes()));
+                        }
                     }
                 });
             }
@@ -96,7 +102,7 @@ namespace elan2mqtt.Helpers
         }
         async Task login(RestClient client, string username, string password)
         {
-            Console.WriteLine("eLan - trying log in");
+            log.LogDebug("eLan - trying log in");
             var r = new RestRequest("login");
             var h = Hash(password).ToLower();
             r.AddBody($"name={username}&key={h}");
@@ -105,12 +111,12 @@ namespace elan2mqtt.Helpers
                 var response = await client.PostAsync(r);
                 // Add cookies accessible for all other connections
                 client.Options.CookieContainer.Add(response?.Cookies.FirstOrDefault(c => c.Name == "AuthAPI"));
-                Console.WriteLine("eLan - logged in");
+                log.LogInformation("eLan - logged in");
 
             }
             catch (Exception ex)
             {
-                Console.WriteLine("eLan - can not log in. " + ex.Message);
+                log.LogError("eLan - can not log in. " + ex.Message);
                 Thread.Sleep(5000);
                 await login(client, username, password);
             }
@@ -140,37 +146,38 @@ namespace elan2mqtt.Helpers
             //_wsClient.ReconnectTimeout = TimeSpan.FromSeconds(10);
             _wsClient.ReconnectionHappened.Subscribe(OnWebSocketReconnected);
             await _wsClient.Start();
-            Console.WriteLine("WS connected");
+            log.LogInformation("WS connected");
 
         }
         void ProcessWebSocketMessage(ResponseMessage msg)
         {
-            //Console.WriteLine($"eLan: msg.Text: {msg.Text},  msg.MessageType: {msg.MessageType}");
+            //log.LogDebug($"eLan: msg.Text: {msg.Text},  msg.MessageType: {msg.MessageType}");
             if (!string.IsNullOrWhiteSpace(msg.Text))
             {
                 var jsonDevice = JsonNode.Parse(msg.Text).AsObject();
                 string device = jsonDevice["device"].ToString();
                 string payload = jsonDevice["result"].ToString();
                 var dev = _eLanDevices.Where(d => d.Id == device).FirstOrDefault();
-                Console.WriteLine($"************* eLan: {dev.DeviceInfo.Address} ({dev.DeviceInfo.Label}),  data: {payload.Linearize()}");
+                log.LogInformation($"eLan: {dev.DeviceInfo.Address} ({dev.DeviceInfo.Label}),  data: {payload.Linearize()}");
                 ElanStatusEventReceived?.Invoke(this, new ElanStatusEventReceivedEventArgs(payload, dev.DeviceInfo.Address.ToString()));
             }
         }
 
         void OnWebSocketDisconnected(DisconnectionInfo info)
         {
-            Console.WriteLine($"WS disconnected: {info.CloseStatusDescription}, ex: {info.Exception}");
             if (info.Exception != null && info.Exception.Message.Contains("status code '401'"))
             {
-                Console.WriteLine("WS - trying to relogin");
+                log.LogTrace("WS - trying to relogin");
                 login(_restClient, _username, _pass).Wait();
                 connectWebSocket(_eLanAddress);
-            }
+            }else
+                log.LogDebug($"WS disconnected: {info.CloseStatusDescription}, ex: {info.Exception}");
+
         }
 
         void OnWebSocketReconnected(ReconnectionInfo info)
         {
-            Console.WriteLine($"WS reconnected: {info.Type}");
+            log.LogTrace($"WS reconnected: {info.Type}");
         }
 
 
@@ -183,7 +190,6 @@ namespace elan2mqtt.Helpers
             var req = new RestRequest(new Uri(device.DeviceURL));
             req.AddJsonBody(payload);
             await _restClient.PutAsync(req);
-            //Console.WriteLine();
         }
         /// <summary>
         /// 
@@ -200,7 +206,7 @@ namespace elan2mqtt.Helpers
             }
             else
             {
-                Console.WriteLine($"REST - got update for non exist device in eLan, ID: {address}, payload: {payload.Linearize()}");
+                log.LogWarning($"REST - got update for non exist device in eLan, ID: {address}, payload: {payload.Linearize()}");
             }
         }
         /// <summary>
@@ -243,7 +249,7 @@ namespace elan2mqtt.Helpers
         {
             if (device.DeviceURL == null)
             {
-                Console.WriteLine($"eLan Device {device.Id} has no Device URL, cannot update device info");
+                log.LogWarning($"eLan Device {device.Id} has no Device URL, cannot update device info");
                 return;
             }
             await _restClient.GetAsync(new RestRequest(device.DeviceURL, Method.Get) { Timeout = new TimeSpan(0, 0, 3) }).ContinueWith((task) =>
@@ -264,11 +270,11 @@ namespace elan2mqtt.Helpers
             // get state of the device
             if (device.StateURL == null)
             {
-                Console.WriteLine($"Device {device.Id} has no State URL, cannot get Device State");
+                log.LogWarning($"Device {device.Id} has no State URL, cannot get Device State");
                 return string.Empty;
             }
             var response = await _restClient.GetAsync(new RestRequest(device.StateURL, Method.Get) { Timeout = new TimeSpan(0, 0, 3) });
-            Console.WriteLine($"eLan get device state: {device.Id} , {response.Content.Linearize()}");
+            log.LogDebug($"eLan get device state: {device.Id} , {response.Content.Linearize()}");
             return response.Content;
         }
 

@@ -4,6 +4,7 @@ using System.Text;
 using MQTTnet.Packets;
 using System.Text.RegularExpressions;
 using MQTTnet.Extensions;
+using Microsoft.Extensions.Logging;
 
 
 namespace elan2mqtt.Helpers
@@ -24,6 +25,9 @@ namespace elan2mqtt.Helpers
         bool _shutDown = false;
         // Definice události
         public event EventHandler<MessageReceivedEventArgs>? MessageReceived;
+
+        ILogger log = ApplicationLogging.CreateLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.Name);
+
 
         public MQTTConnector()
         {
@@ -79,12 +83,12 @@ namespace elan2mqtt.Helpers
             // Setup message handling
             _mqttClient.ApplicationMessageReceivedAsync += async e =>
             {
-                Console.WriteLine("Received application message.");
+                log.LogDebug("Received application message.");
                 // Convert Payload to string
                 var payload = e.ApplicationMessage?.Payload == null ? null : Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
 
 
-                //Console.WriteLine(string.Format(
+                //log.LogDebug(string.Format(
                 //    " TimeStamp: {0} -- Message: ClientId = {1}, Topic = {2}, Payload = {3}, QoS = {4}, Retain-Flag = {5}\r\n\r\n",
 
                 //    DateTime.Now,
@@ -103,7 +107,7 @@ namespace elan2mqtt.Helpers
                 if (match.Success)
                 {
                     deviceId = match.Groups["deviceId"].Value;
-                    //Console.WriteLine($"Device ID: {deviceId}");
+                    //log.LogDebug($"Device ID: {deviceId}");
                     if (payload != null)
                     {
                         MessageReceived?.Invoke(this, new MessageReceivedEventArgs(payload, deviceId));
@@ -111,7 +115,7 @@ namespace elan2mqtt.Helpers
                 }
                 else
                 {
-                    Console.WriteLine("Device ID nebylo nalezeno.");
+                    log.LogWarning("Device ID can not be found.");
                 }
 
 
@@ -119,17 +123,18 @@ namespace elan2mqtt.Helpers
             };
             _mqttClient.ConnectedAsync += async e =>
             {
-                Console.WriteLine($"The MQTT client is connected.");
+                log.LogDebug($"The MQTT client is connected.");
                 // subscribe to the topic
                 await _mqttClient.SubscribeAsync(new MqttTopicFilter { Topic = MQTTSubscribeTopic }).ConfigureAwait(false);
-                Console.WriteLine("The MQTT client is subscribed.");
+                log.LogTrace("The MQTT client is subscribed.");
             };
             _mqttClient.DisconnectedAsync += async e =>
             {
                 // maybe failure, so try to reconnect except shutdown
                 if (!_shutDown)
                 {
-                    Console.WriteLine("The MQTT client reconnecting.");
+                    log.LogDebug($"The MQTT client reconnecting. {e.Exception}");
+                    Thread.Sleep(3000);
                     await _mqttClient.ReconnectAsync();
                 }
             };
@@ -141,7 +146,7 @@ namespace elan2mqtt.Helpers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"The MQTT client is NOT connected, error: " + ex.ToString());
+                log.LogError($"The MQTT client is NOT connected, error: " + ex.ToString());
             }
         }
 
@@ -153,7 +158,7 @@ namespace elan2mqtt.Helpers
     .WithTopic($"{MQTTMainTopic}/{deviceID}/{MQTTStatusTopic}")
     .WithPayload(payload)
     .Build();
-                Console.WriteLine($"The MQTT Publishing to topic: {applicationMessage.Topic} message: {payload.Linearize()}");
+                log.LogDebug($"The MQTT Publishing to topic: {applicationMessage.Topic} message: {payload.Linearize()}");
                 await _mqttClient.PublishAsync(applicationMessage, CancellationToken.None);
             }
         }
@@ -165,7 +170,7 @@ namespace elan2mqtt.Helpers
     .WithTopic(topic)
     .WithPayload(payload)
     .Build();
-                Console.WriteLine($"The MQTT Publishing to topic: {applicationMessage.Topic} message: {payload.Linearize()}");
+                log.LogDebug($"The MQTT Publishing to topic: {applicationMessage.Topic} message: {payload.Linearize()}");
                 await _mqttClient.PublishAsync(applicationMessage, CancellationToken.None);
             }
         }
@@ -174,7 +179,7 @@ namespace elan2mqtt.Helpers
             if (_mqttClient != null && IsConnected)
             {
                 var applicationMessage = new MqttApplicationMessageBuilder().WithTopic(topic).WithPayload(payload).Build();
-                Console.WriteLine($"The MQTT Publishing to topic: {applicationMessage.Topic} message: byte encoded");
+                log.LogDebug($"The MQTT Publishing to topic: {applicationMessage.Topic} message: byte encoded");
                 await _mqttClient.PublishAsync(applicationMessage, CancellationToken.None);
             }
         }

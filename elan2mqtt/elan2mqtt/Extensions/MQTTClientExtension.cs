@@ -25,9 +25,8 @@ internal static class ObjectExtensions
 
     public static string Linearize(this string text)
     {
-        return text.Replace("\r", "").Replace("\n", "").Replace("\t", "").Replace("  ","");
+        return text.Replace("\r", "").Replace("\n", "").Replace("\t", "").Replace("  ", "");
     }
-
 }
 
 public static class MqttDiscoveryConfigExtensions
@@ -61,26 +60,22 @@ public static class MqttDiscoveryConfigExtensions
     }
 }
 
-
 [JsonSerializable(typeof(ActionTypeFromJson))]
 [JsonSerializable(typeof(ActionsInfoFromJson))]
 [JsonSerializable(typeof(DeviceInfoFromJson))]
 [JsonSerializable(typeof(ElkoEpDevFromJson))]
-//[JsonSerializable(typeof(bool))]
 [JsonSerializable(typeof(ElanDevices))]
 [JsonSerializable(typeof(IList<string>))]
 [JsonSerializable(typeof(List<string>))]
 [JsonSerializable(typeof(List<object>))]
 [JsonSerializable(typeof(Array))]
 [JsonSourceGenerationOptions(
-WriteIndented = true,
-PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+    WriteIndented = true,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 public partial class ElDevJsonContext : JsonSerializerContext
 {
-
 }
-
 
 public static class ElDevExtensions
 {
@@ -91,7 +86,7 @@ public static class ElDevExtensions
         return JsonSerializer.Serialize(config, jsonTypeInfo);
     }
 
-    public static ElkoEpDevFromJson? FromJson<T>(this string json, JsonSerializerContext? ctx = null) where T : ElkoEpDevFromJson
+    public static T? FromJson<T>(this string json, JsonSerializerContext? ctx = null) where T : ElkoEpDevFromJson
     {
         ctx ??= ElDevJsonContext.Default;
         var jsonTypeInfo = ctx.GetTypeInfo(typeof(T)) ?? throw new InvalidOperationException("The JsonTypeInfo for " + typeof(T).FullName + " was not found in the provided JsonSerializerContext. If you have a custom Discovery Document you might need to provide your own JsonSerializerContext");
@@ -104,8 +99,4 @@ public static class ElDevExtensions
         var jsonTypeInfo = ctx.GetTypeInfo(typeof(T)) ?? throw new InvalidOperationException("The JsonTypeInfo for " + typeof(T).FullName + " was not found in the provided JsonSerializerContext. If you have a custom Discovery Document you might need to provide your own JsonSerializerContext");
         return JsonSerializer.Deserialize<T>(jsonBytes, (System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>)jsonTypeInfo);
     }
-
-
-
-
 }
